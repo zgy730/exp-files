@@ -1,18 +1,22 @@
-import time
 import asyncio
-import aiofiles
 import os
+import time
+from collections import Counter
+
+import aiofiles
 from pydantic import BaseModel
+
 from exp_files.settings import settings
 from exp_files.utils import clean_text
-from collections import Counter
+
 
 class ProcessFilesRequest(BaseModel):
     dir_path: str = ""
     file_paths: list[str] = []
 
+
 class AsyncProcessor:
-    def __init__(self, concurrent_limit:int = settings.concurrent_limit):
+    def __init__(self, concurrent_limit: int = settings.concurrent_limit):
         self.concurrent_limit = concurrent_limit
         self.semaphore = asyncio.Semaphore(concurrent_limit)
         self.total_files = 0
@@ -22,8 +26,10 @@ class AsyncProcessor:
         async with self.semaphore:
             c = Counter()
             try:
-                # 尝试使用UTF-8编码打开文件，如果失败则跳过
-                async with aiofiles.open(file_path, "r", encoding=settings.encoding, errors="ignore") as f:
+                # Try to open file with UTF-8 encoding, skip if failed
+                async with aiofiles.open(
+                    file_path, "r", encoding=settings.encoding, errors="ignore"
+                ) as f:
                     while True:
                         chunk = await f.read(settings.chunk_size)
                         if not chunk:
@@ -40,29 +46,29 @@ class AsyncProcessor:
                 print(f"Failed to process {file_path}: {e}")
                 self.processed_files += 1
                 return c
-    
+
     async def process_files(self, request: ProcessFilesRequest):
         if not request.dir_path and not request.file_paths:
             raise ValueError("Either dir_path or file_paths must be provided.")
-        
-        # 收集所有文件路径
+
+        # Collect all file paths
         all_files = set(request.file_paths)
-        
-        # 如果提供了目录路径，遍历目录下的所有文件
+
+        # If directory path is provided, traverse all files in the directory
         if request.dir_path:
             if not os.path.exists(request.dir_path):
                 raise ValueError(f"Directory {request.dir_path} does not exist.")
-            
+
             for root, dirs, files in os.walk(request.dir_path):
                 for file in files:
                     file_path = os.path.join(root, file)
                     all_files.add(file_path)
-        
-        # 转换为列表并更新文件总数
+
+        # Convert to list and update total files count
         all_files_list = list(all_files)
         self.total_files = len(all_files_list)
-        
-        # 处理所有文件
+
+        # Process all files
         tasks = [self._process_file(file_path) for file_path in all_files_list]
         results = await asyncio.gather(*tasks)
         total_c = Counter()

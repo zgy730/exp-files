@@ -1,75 +1,78 @@
-import sys
-import os
 import asyncio
+
 import click
 
-from exp_files.settings import settings
 from exp_files.processor import AsyncProcessor, ProcessFilesRequest
+from exp_files.settings import settings
+
 
 class FileProcessorRunner:
-    """文件处理器运行类"""
-    
+    """File processor runner class"""
+
     def __init__(self):
-        """初始化运行器"""
+        """Initialize the runner"""
         self.processor = AsyncProcessor(concurrent_limit=settings.concurrent_limit)
-    
+
     async def run(self, dir_path: str = "", file_paths: list[str] = []):
-        """运行文件处理器
-        
+        """Run the file processor
+
         Args:
-            dir_path: 要处理的目录路径
-            file_paths: 要处理的文件路径列表
+            dir_path: Directory path to process
+            file_paths: List of file paths to process
         """
-        # 创建请求对象
-        request = ProcessFilesRequest(
-            dir_path=dir_path,
-            file_paths=file_paths
-        )
-        
+        # Create request object
+        request = ProcessFilesRequest(dir_path=dir_path, file_paths=file_paths)
+
         try:
-            print("开始处理文件...")
-            print(f"并发限制: {settings.concurrent_limit}")
-            
-            # 处理文件
+            print("Starting file processing...")
+            print(f"Concurrent limit: {settings.concurrent_limit}")
+
+            # Process files
             result = await self.processor.process_files(request)
-            
-            print("处理完成！")
-            print(f"总文件数: {self.processor.total_files}")
-            print(f"处理文件数: {self.processor.processed_files}")
-            print(f"结果包含 {len(result)} 个不同的词")
-            
-            # 打印前10个最常见的词
-            print("\n前10个最常见的词:")
+
+            print("Processing completed!")
+            print(f"Total files: {self.processor.total_files}")
+            print(f"Processed files: {self.processor.processed_files}")
+            print(f"Result contains {len(result)} different words")
+
+            # Print top 10 most common words
+            print("\nTop 10 most common words:")
             for word, count in result.most_common(10):
                 print(f"{word}: {count}")
-                
+
             return result
-            
+
         except Exception as e:
-            print(f"处理过程中发生错误: {e}")
+            print(f"Error occurred during processing: {e}")
             raise
 
-@click.command()
-@click.option('--dir', '-d', help='要处理的目录路径')
-@click.option('--file', '-f', multiple=True, help='要处理的文件路径，可以多次使用')
-def main(dir, file):
-    """文件处理器命令行工具
 
-    示例用法：
+@click.command()
+@click.option("--dir", "-d", help="Directory path to process")
+@click.option(
+    "--file",
+    "-f",
+    multiple=True,
+    help="File paths to process, can be used multiple times",
+)
+def main(dir, file):
+    """File processor command line tool
+
+    Example usage:
         python main.py --dir /path/to/directory
         python main.py --file file1.txt --file file2.txt
         python main.py -d /path/to/directory -f file1.txt -f file2.txt
     """
     runner = FileProcessorRunner()
-    
-    # 确保dir_path是字符串类型，click未提供时返回None
+
+    # Ensure dir_path is string type, click returns None when not provided
     dir_path = dir if dir is not None else ""
-    
-    # 确保file_paths是列表类型，click的multiple=True返回元组
+
+    # Ensure file_paths is list type, click's multiple=True returns tuple
     file_paths = list(file) if file else []
-    
+
     asyncio.run(runner.run(dir_path, file_paths))
+
 
 if __name__ == "__main__":
     main()
-
