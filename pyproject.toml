@@ -1,7 +1,7 @@
 [project]
 name = "exp-files"
 version = "0.1.0"
-description = "Add your description here"
+description = "File processing utility with async capabilities"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -11,7 +11,27 @@ dependencies = [
     "pydantic-settings>=2.12.0",
 ]
 
+# Command line scripts to be installed with the package
+[project.scripts]
+exp-files = "exp_files.cli:main"
+
 [dependency-groups]
 dev = [
     "ruff>=0.14.11",
+    "uv>=0.4.0",
 ]
+
+# Setuptools configuration
+[tool.setuptools]
+
+# Package discovery configuration
+[tool.setuptools.packages.find]
+# Look for packages in the src directory
+where = ["src"]
+# Exclude test directories
+exclude = ["tests*"]
+
+# Build configuration
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
